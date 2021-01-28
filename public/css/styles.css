@@ -1,0 +1,25 @@
+
+body {
+  background-color:#E8ECEF;
+}
+
+.centered {
+    padding-top: 200px;
+    text-align: center;
+    
+}
+
+/* .jumbotron {
+  margin-top: 400px;
+} */
+
+.secret-text {
+  text-align: center;
+  font-size: 2rem;
+  color: #fff;
+  background-color: #000;
+}
+/* */
+.ptop{
+  margin-top: 4px;
+}
