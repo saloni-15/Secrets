@@ -4,12 +4,16 @@ const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
-/*******************************LEVEL-4(Hashing using md5)********************************
- In hashing the password is passed through the function md5(), and is changed into a hash which is not reversible
- and no can easily get in our passwords. 
+
+/*******************************LEVEL-5(Hashing and salting using bcrypt)********************************
+ In salting we add some randome characters(salt) to the real pw and and then passes through hash function 
+ and we can decide for how many times salting is to be done. More the salting rounds stronger the passwords
+ are.
  */ 
-const md5 = require("md5");//---> L-4
+
 
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser:true, useUnifiedTopology:true});
 
@@ -45,19 +49,24 @@ app.get("/login", function(req, res){
 
 //REGISTER --> when user clicks on register and submits the email and password, he will then have the access to SECRETS page.
 app.post("/register", function(req, res){
-    const newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password)//converting to irreversible hash
-    });
-    newUser.save(function(err){
-        if(err){
-            console.log(err);
-        }
-        else{
-            res.render("secrets");
-        }
 
-    });
+  //generates hash
+  bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+    const newUser = new User({
+      email: req.body.username,
+      password: hash //hashed and salted pw
+  });
+  newUser.save(function(err){
+      if(err){
+          console.log(err);
+      }
+      else{
+          res.render("secrets");
+      }
+
+  });
+});
+   
 });
 
 // LOGIN --> when user clicks on login and submits the email and password, first the username is 
@@ -66,14 +75,18 @@ app.post("/register", function(req, res){
 // he will then have the access to SECRETS page.
 app.post("/login", function (req, res) {
   const username = req.body.username;
-  const password = md5(req.body.password);
+  const password = req.body.password;
 
   User.findOne({ email: username }, function (err, foundUser) {
     if (!err) {
       if (foundUser) {
-        if (foundUser.password === password) {
-          res.render("secrets");
-        }
+        //compare pw with hash in database
+        bcrypt.compare(password, foundUser.password, function (err, result) {
+          // result == true
+          if (result === true) {
+            res.render("secrets");
+          }
+        });
       }
     } else {
       console.log(err);
