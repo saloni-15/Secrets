@@ -1,10 +1,10 @@
 //jshint esversion:6
+require("dotenv").config();//----> L-3
 const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const encrypt = require("mongoose-encryption");
-//const { strict } = require("assert");
 
 
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser:true, useUnifiedTopology:true});
@@ -14,17 +14,16 @@ const app = express();
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 
-/*******************************LEVEL-2( mongoose-encryption)********************************/
-//modified schema 
+/*******************************LEVEL-3( mongoose-encryption adding environment variables)********************************/ 
+
 const userSchema = new mongoose.Schema({
   email: String,
   password: String
 });
 
-const secret = "thisisourencryptionsecret" //using this secret mongoose-encryption will encrypt the password when save() is called and and decrypt when find() is called
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"]});
-//but in this method, anyone can have access to app.js file and can easily find the encryption
-//key (secret) and can use the same package to decrypt the passwords, so this is also not safe.
+
+ //using this secret mongoose-encryption will encrypt the password when save() is called and and decrypt when find() is called
+userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]});
 
 /********************************************************************************************/
 
