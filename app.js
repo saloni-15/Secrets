@@ -3,6 +3,7 @@ const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
 //const { strict } = require("assert");
 
 
@@ -13,17 +14,19 @@ const app = express();
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 
-/***************************LEVEL-1***************************/
-// (here the password stored in the database are in plain text so 
-// anybody can access it through the database so this is not the 
-// safe method.)
+/*******************************LEVEL-2( mongoose-encryption)********************************/
+//modified schema 
+const userSchema = new mongoose.Schema({
+  email: String,
+  password: String
+});
 
-// simple js object schema
-const userSchema = {
-    email: String,
-    password: String
-};
+const secret = "thisisourencryptionsecret" //using this secret mongoose-encryption will encrypt the password when save() is called and and decrypt when find() is called
+userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"]});
+//but in this method, anyone can have access to app.js file and can easily find the encryption
+//key (secret) and can use the same package to decrypt the passwords, so this is also not safe.
 
+/********************************************************************************************/
 
 const User = mongoose.model("User", userSchema);
 
@@ -79,11 +82,6 @@ app.post("/login", function (req, res) {
     }
   });
 });
-
-
-
-
-
 
 
 app.listen(3000, function(){
