@@ -4,8 +4,12 @@ const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
 
+/*******************************LEVEL-4(Hashing using md5)********************************
+ In hashing the password is passed through the function md5(), and is changed into a hash which is not reversible
+ and no can easily get in our passwords. 
+ */ 
+const md5 = require("md5");//---> L-4
 
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser:true, useUnifiedTopology:true});
 
@@ -14,18 +18,13 @@ const app = express();
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 
-/*******************************LEVEL-3( mongoose-encryption adding environment variables)********************************/ 
+
 
 const userSchema = new mongoose.Schema({
   email: String,
   password: String
 });
 
-
- //using this secret mongoose-encryption will encrypt the password when save() is called and and decrypt when find() is called
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]});
-
-/********************************************************************************************/
 
 const User = mongoose.model("User", userSchema);
 
@@ -48,7 +47,7 @@ app.get("/login", function(req, res){
 app.post("/register", function(req, res){
     const newUser = new User({
         email: req.body.username,
-        password: req.body.password
+        password: md5(req.body.password)//converting to irreversible hash
     });
     newUser.save(function(err){
         if(err){
@@ -67,7 +66,7 @@ app.post("/register", function(req, res){
 // he will then have the access to SECRETS page.
 app.post("/login", function (req, res) {
   const username = req.body.username;
-  const password = req.body.password;
+  const password = md5(req.body.password);
 
   User.findOne({ email: username }, function (err, foundUser) {
     if (!err) {
