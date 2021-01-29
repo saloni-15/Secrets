@@ -1,16 +1,14 @@
 //jshint esversion:6
-require("dotenv").config();//----> L-3
+require("dotenv").config();
 const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-
-/********************************LEVEL-6(using PASSPORT authentication)*********************/
-
-//1.REQUIRE 3 packages.(express-session, passport, passport-local(not required), passport-local-mongoose )
-const session = require("express-session");//6
-const passport = require("passport");//6
-const passportLocalMongoose = require("passport-local-mongoose");//6
+const session = require("express-session");
+const passport = require("passport");//1.requiring passport packages
+const passportLocalMongoose = require("passport-local-mongoose");
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
 
@@ -35,25 +33,58 @@ mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser:true, useU
 mongoose.set("useCreateIndex", true); //DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead. (Use `node --trace-deprecation ...` to show where the warning was created)
 const userSchema = new mongoose.Schema({
   email: String,
-  password: String
+  password: String,
+  googleId: String
 });
 
 //5.USING passport-local-mongooose
 userSchema.plugin(passportLocalMongoose);//Hash and salt the passwords and save the data in database.
+userSchema.plugin(findOrCreate);
 
-const User = mongoose.model("User", userSchema);
+const User = new mongoose.model("User", userSchema);
 
 //6.PASSPORT-LOCAL
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser(function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+  User.findById(id, function(err, user) {
+    done(err, user);
+  });
+});
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  callbackURL: "http://localhost:3000/auth/google/secrets",
+  userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+},
+function(accessToken, refreshToken, profile, cb) {
+  User.findOrCreate({ googleId: profile.id }, function (err, user) {
+    return cb(err, user);
+  });
+}
+));
 
 
 
 app.get("/", function(req, res){
     res.render("home");
 });
+
+app.get("/auth/google", 
+  passport.authenticate("google", {scope: ["profile"]})
+);
+
+app.get("/auth/google/secrets", 
+  passport.authenticate('google', { failureRedirect: "/login" }),
+  function(req, res) {
+    // Successful authentication, redirect secrets .
+    res.redirect('/secrets');
+  });
 
 app.get("/register", function(req, res){
     res.render("register");
